@@ -1,6 +1,5 @@
 static struct kw blocktags[] = {
    { "P", 1, 0 },
-   { "BR", 2, 1 },
    { "DL", 2, 0 },
    { "H1", 2, 0 },
    { "H2", 2, 0 },
@@ -31,4 +30,4 @@ static struct kw blocktags[] = {
    { "BLOCKQUOTE", 10, 0 },
 };
 
-#define NR_blocktags 30
+#define NR_blocktags 29
