@@ -1,4 +1,5 @@
-CC=cc -I. -L.
+CC=cc -Wno-implicit-int -I.
+LFLAGS=-L.
 CFLAGS=-g
 AR=/usr/bin/ar
 RANLIB=/usr/bin/ranlib
@@ -15,55 +16,60 @@ MKDLIB=libmarkdown
 OBJS=mkdio.o markdown.o dumptree.o generate.o \
      resource.o docheader.o version.o toc.o css.o \
      xml.o Csio.o xmlpage.o basename.o emmatch.o \
-     setup.o tags.o html5.o flags.o 
+     github_flavoured.o setup.o tags.o html5.o flags.o 
 TESTFRAMEWORK=echo cols
 
 MAN3PAGES=mkd-callbacks.3 mkd-functions.3 markdown.3 mkd-line.3
 
 all: $(PGMS) $(SAMPLE_PGMS) $(TESTFRAMEWORK)
 
-install: $(PGMS) $(DESTDIR)/$(BINDIR) $(DESTDIR)/$(LIBDIR) $(DESTDIR)/$(INCDIR)
-	/usr/bin/install -s -m 755 $(PGMS) $(DESTDIR)/$(BINDIR)
-	./librarian.sh install libmarkdown VERSION $(DESTDIR)/$(LIBDIR)
-	/usr/bin/install -m 444 mkdio.h $(DESTDIR)/$(INCDIR)
+install: $(PGMS) $(DESTDIR)$(BINDIR) $(DESTDIR)$(LIBDIR) $(DESTDIR)$(INCDIR)
+	/usr/bin/install -s -m 755 $(PGMS) $(DESTDIR)$(BINDIR)
+	./librarian.sh install libmarkdown VERSION $(DESTDIR)$(LIBDIR)
+	/usr/bin/install -m 444 mkdio.h $(DESTDIR)$(INCDIR)
 
 install.everything: install install.samples install.man
 
-install.samples: $(SAMPLE_PGMS) install $(DESTDIR)/$(BINDIR)
-	/usr/bin/install -s -m 755 $(SAMPLE_PGMS) $(DESTDIR)/$(BINDIR)
-	/Users/oliver/Development/GHMarkdownParser/discount/config.md $(DESTDIR)/$(MANDIR)/man1
-	/usr/bin/install -m 444 theme.1 makepage.1 mkd2html.1 $(DESTDIR)/$(MANDIR)/man1
+install.samples: $(SAMPLE_PGMS) install $(DESTDIR)$(BINDIR)
+	/Code/Beanbag/vendor/GHMarkdownParser/discount/config.md $(DESTDIR)$(MANDIR)/man1
+	for x in $(SAMPLE_PGMS); do \
+	    /usr/bin/install -s -m 755 $$x $(DESTDIR)$(BINDIR)/$(SAMPLE_PFX)$$x; \
+	    /usr/bin/install -m 444 $$x.1 $(DESTDIR)$(MANDIR)/man1/$(SAMPLE_PFX)$$x; \
+	done
 
 install.man:
-	/Users/oliver/Development/GHMarkdownParser/discount/config.md $(DESTDIR)/$(MANDIR)/man3
-	/usr/bin/install -m 444 $(MAN3PAGES) $(DESTDIR)/$(MANDIR)/man3
+	/Code/Beanbag/vendor/GHMarkdownParser/discount/config.md $(DESTDIR)$(MANDIR)/man3
+	/usr/bin/install -m 444 $(MAN3PAGES) $(DESTDIR)$(MANDIR)/man3
 	for x in mkd_line mkd_generateline; do \
-	    ( echo '.\"' ; echo ".so man3/mkd-line.3" ) > $(DESTDIR)/$(MANDIR)/man3/$$x.3;\
+	    ( echo '.\"' ; echo ".so man3/mkd-line.3" ) > $(DESTDIR)$(MANDIR)/man3/$$x.3;\
 	done
 	for x in mkd_in mkd_string; do \
-	    ( echo '.\"' ; echo ".so man3/markdown.3" ) > $(DESTDIR)/$(MANDIR)/man3/$$x.3;\
+	    ( echo '.\"' ; echo ".so man3/markdown.3" ) > $(DESTDIR)$(MANDIR)/man3/$$x.3;\
 	done
 	for x in mkd_compile mkd_css mkd_generatecss mkd_generatehtml mkd_cleanup mkd_doc_title mkd_doc_author mkd_doc_date; do \
-	    ( echo '.\"' ; echo ".so man3/mkd-functions.3" ) > $(DESTDIR)/$(MANDIR)/man3/$$x.3; \
+	    ( echo '.\"' ; echo ".so man3/mkd-functions.3" ) > $(DESTDIR)$(MANDIR)/man3/$$x.3; \
 	done
-	/Users/oliver/Development/GHMarkdownParser/discount/config.md $(DESTDIR)/$(MANDIR)/man7
-	/usr/bin/install -m 444 markdown.7 mkd-extensions.7 $(DESTDIR)/$(MANDIR)/man7
-	/Users/oliver/Development/GHMarkdownParser/discount/config.md $(DESTDIR)/$(MANDIR)/man1
-	/usr/bin/install -m 444 markdown.1 $(DESTDIR)/$(MANDIR)/man1
+	/Code/Beanbag/vendor/GHMarkdownParser/discount/config.md $(DESTDIR)$(MANDIR)/man7
+	/usr/bin/install -m 444 markdown.7 mkd-extensions.7 $(DESTDIR)$(MANDIR)/man7
+	/Code/Beanbag/vendor/GHMarkdownParser/discount/config.md $(DESTDIR)$(MANDIR)/man1
+	/usr/bin/install -m 444 markdown.1 $(DESTDIR)$(MANDIR)/man1
 
 install.everything: install install.man
 
-$(DESTDIR)/$(BINDIR):
-	/Users/oliver/Development/GHMarkdownParser/discount/config.md $(DESTDIR)/$(BINDIR)
+$(DESTDIR)$(BINDIR):
+	/Code/Beanbag/vendor/GHMarkdownParser/discount/config.md $(DESTDIR)$(BINDIR)
 
-$(DESTDIR)/$(INCDIR):
-	/Users/oliver/Development/GHMarkdownParser/discount/config.md $(DESTDIR)/$(INCDIR)
+$(DESTDIR)$(INCDIR):
+	/Code/Beanbag/vendor/GHMarkdownParser/discount/config.md $(DESTDIR)$(INCDIR)
 
-$(DESTDIR)/$(LIBDIR):
-	/Users/oliver/Development/GHMarkdownParser/discount/config.md $(DESTDIR)/$(LIBDIR)
+$(DESTDIR)$(LIBDIR):
+	/Code/Beanbag/vendor/GHMarkdownParser/discount/config.md $(DESTDIR)$(LIBDIR)
 
 version.o: version.c VERSION
-	$(CC) -DVERSION=\"`cat VERSION`\" -c version.c
+	$(CC) $(CFLAGS) -DVERSION=\"`cat VERSION`\" -c version.c
+
+VERSION:
+	@true
 
 tags.o: tags.c blocktags
 
@@ -72,23 +78,23 @@ blocktags: mktags
 
 # example programs
 theme:  theme.o $(MKDLIB) mkdio.h
-	$(CC) -o theme theme.o -lmarkdown 
+	$(CC) $(CFLAGS) $(LFLAGS) -o theme theme.o pgm_options.o -lmarkdown 
 
 
 mkd2html:  mkd2html.o $(MKDLIB) mkdio.h
-	$(CC) -o mkd2html mkd2html.o -lmarkdown 
+	$(CC) $(CFLAGS) $(LFLAGS) -o mkd2html mkd2html.o -lmarkdown 
 
 markdown: main.o pgm_options.o $(MKDLIB)
-	$(CC) $(CFLAGS) -o markdown main.o pgm_options.o -lmarkdown 
+	$(CC) $(CFLAGS) $(LFLAGS) -o markdown main.o pgm_options.o -lmarkdown 
 	
 makepage:  makepage.c pgm_options.o $(MKDLIB) mkdio.h
-	$(CC) $(CFLAGS) -o makepage makepage.c pgm_options.o -lmarkdown 
+	$(CC) $(CFLAGS) $(LFLAGS) -o makepage makepage.c pgm_options.o -lmarkdown 
 
 pgm_options.o: pgm_options.c mkdio.h config.h
-	$(CC) -I. -c pgm_options.c
+	$(CC) $(CFLAGS) -I. -c pgm_options.c
 
 main.o: main.c mkdio.h config.h
-	$(CC) -I. -c main.c
+	$(CC) $(CFLAGS) -I. -c main.c
 
 $(MKDLIB): $(OBJS)
 	./librarian.sh make $(MKDLIB) VERSION $(OBJS)
