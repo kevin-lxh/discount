@@ -1,6 +1,6 @@
 /*
- * configuration for markdown, generated Mo  1 Aug 2011 17:38:45 CEST
- * by oliver@Oliver-Letterers-MacBook-Air.local
+ * configuration for markdown, generated Sun Mar  9 11:47:15 PDT 2014
+ * by snej@jens.local
  */
 #ifndef __AC_MARKDOWN_D
 #define __AC_MARKDOWN_D 1
@@ -8,6 +8,8 @@
 
 #define OS_DARWIN 1
 #define USE_DISCOUNT_DL 1
+#define while(x) while( (x) != 0 )
+#define if(x) if( (x) != 0 )
 #define DWORD unsigned int
 #define WORD unsigned short
 #define BYTE unsigned char

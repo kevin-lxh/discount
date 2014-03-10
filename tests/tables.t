@@ -12,13 +12,11 @@ try 'single-column table' \
     '<table>
 <thead>
 <tr>
-<th></th>
 <th>hello</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td></td>
 <td>sailor</td>
 </tr>
 </tbody>
@@ -33,7 +31,7 @@ hello|sailor' \
     '<table>
 <thead>
 <tr>
-<th>  a  </th>
+<th>a  </th>
 <th>  b</th>
 </tr>
 </thead>
@@ -75,7 +73,7 @@ hello|
     '<table>
 <thead>
 <tr>
-<th>  a  </th>
+<th>a  </th>
 <th>  b</th>
 </tr>
 </thead>
@@ -85,7 +83,7 @@ hello|
 <td></td>
 </tr>
 <tr>
-<td>     </td>
+<td></td>
 <td>sailor</td>
 </tr>
 </tbody>
@@ -99,14 +97,14 @@ hello|sailor' \
     '<table>
 <thead>
 <tr>
-<th align="right">  a  </th>
-<th align="left">  b</th>
+<th style="text-align:right;">a  </th>
+<th style="text-align:left;">  b</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td align="right">hello</td>
-<td align="left">sailor</td>
+<td style="text-align:right;">hello</td>
+<td style="text-align:left;">sailor</td>
 </tr>
 </tbody>
 </table>'
@@ -119,7 +117,7 @@ hello|sailor|boy' \
     '<table>
 <thead>
 <tr>
-<th>  a  </th>
+<th>a  </th>
 <th>  b</th>
 </tr>
 </thead>
@@ -206,6 +204,73 @@ CD' \
     '<p>A |B
 &ndash;|-
 CD</p>'
+
+try 'table followed by text' \
+    '
+A|B
+-|-
+C|D
+
+foo?' \
+'<table>
+<thead>
+<tr>
+<th>A</th>
+<th>B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C</td>
+<td>D</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>foo?</p>'
+
+try "table with flanking |'s" \
+'
+|A|B|
+|-|-|
+|D|C|' \
+'<table>
+<thead>
+<tr>
+<th>A</th>
+<th>B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D</td>
+<td>C</td>
+</tr>
+</tbody>
+</table>'
+
+try "table with leading |'s and alignment" \
+'|AA|BB|CC
+|:-|::|-:
+|aa|bb|cc' \
+'<table>
+<thead>
+<tr>
+<th style="text-align:left;">AA</th>
+<th style="text-align:center;">BB</th>
+<th style="text-align:right;">CC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">aa</td>
+<td style="text-align:center;">bb</td>
+<td style="text-align:right;">cc</td>
+</tr>
+</tbody>
+</table>'
+
 
 summary $0
 exit $rc

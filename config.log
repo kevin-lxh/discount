@@ -4,39 +4,69 @@ CPP=[/usr/bin/cpp], CPPFLAGS=[]
 looking for install
  (/usr/bin/install)
 checking out the C compiler
+ngc71216.c:2:1: warning: type specifier missing, defaults to 'int' [-Wimplicit-int]
+main()
+^~~~
+1 warning generated.
 checking for "volatile" keyword
 checking for "const" keyword
 Checking for "inline" keyword
 defining WORD & DWORD scalar types
-ngc38878.c: In function ‘main’:
-ngc38878.c:29: warning: incompatible implicit declaration of built-in function ‘exit’
-ngc38878.c:16: warning: return type of ‘main’ is not ‘int’
-ngc38878.c: In function ‘main’:
-ngc38878.c:5: warning: initialization makes pointer from integer without a cast
-ngc38878.c:6: warning: initialization makes pointer from integer without a cast
-./configure.inc: line 1180: ngc38878: command not found
+looking for header WinDef.h
+test failed:  command was cc -Wno-implicit-int -c -o ngc71216.o ngc71216.c
+output:
+ngc71216.c:2:10: fatal error: 'WinDef.h' file not found
+#include <WinDef.h>
+         ^
+1 error generated.
+offending sources:
+ngc71216.c:
+/* AC_CHECK_HEADERS */
+#include <WinDef.h>
+main() { }
+ngc71216.c:28:2: warning: implicitly declaring library function 'exit' with type 'void (int) __attribute__((noreturn))'
+        exit(1);
+        ^
+ngc71216.c:28:2: note: please include the header <stdlib.h> or explicitly provide a declaration for 'exit'
+1 warning generated.
 looking for header pwd.h
 looking for the getpwuid function
 looking for the srandom function
 looking for the bzero function
-ngc38878.c: In function ‘main’:
-ngc38878.c:4: warning: incompatible implicit declaration of built-in function ‘bzero’
+ngc71216.c:4:5: warning: implicitly declaring library function 'bzero' with type 'void (void *, unsigned long)'
+    bzero((char*)0,0);
+    ^
+ngc71216.c:4:5: note: please include the header <strings.h> or explicitly provide a declaration for 'bzero'
+1 warning generated.
 looking for the random function
 looking for the strcasecmp function
+ngc71216.c:1:6: warning: incompatible redeclaration of library function 'strcasecmp' [-Wincompatible-library-redeclaration]
+void strcasecmp();
+     ^
+ngc71216.c:1:6: note: 'strcasecmp' is a builtin with type 'int (const char *, const char *)'
+1 warning generated.
 looking for the strncasecmp function
+ngc71216.c:1:6: warning: incompatible redeclaration of library function 'strncasecmp' [-Wincompatible-library-redeclaration]
+void strncasecmp();
+     ^
+ngc71216.c:1:6: note: 'strncasecmp' is a builtin with type 'int (const char *, const char *, unsigned long)'
+1 warning generated.
 looking for the fchdir function
 looking for header malloc.h
-test failed:  command was cc -c -o ngc38878.o ngc38878.c
+test failed:  command was cc -Wno-implicit-int -c -o ngc71216.o ngc71216.c
 output:
-ngc38878.c:2:20: error: malloc.h: No such file or directory
+ngc71216.c:2:10: fatal error: 'malloc.h' file not found
+#include <malloc.h>
+         ^
+1 error generated.
 offending sources:
-ngc38878.c:
+ngc71216.c:
 /* AC_CHECK_HEADERS */
 #include <malloc.h>
 main() { }
 find is /usr/bin/find
 /bin/ln exists, and ln -s works
-	total      220.26
+	total     2927.35
 sed is /usr/bin/sed
 generating Makefile
 generating version.c

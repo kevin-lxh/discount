@@ -177,6 +177,9 @@ splitline(Line *t, int cutpoint)
 }
 
 #define UNCHECK(l) ((l)->flags &= ~CHECKED)
+#define UNLESS_FENCED(t) if (fenced) { \
+    other = 1; l->count += (c == ' ' ? 0 : -1); \
+  } else { t; }
 
 /*
  * walk a line, seeing if it's any of half a dozen interesting regular
@@ -188,7 +191,8 @@ checkline(Line *l)
     int eol, i;
     int dashes = 0, spaces = 0,
 	equals = 0, underscores = 0,
-	stars = 0, tildes = 0;
+	stars = 0, tildes = 0, other = 0,
+	backticks = 0, fenced = 0;
 
     l->flags |= CHECKED;
     l->kind = chk_text;
@@ -205,17 +209,23 @@ checkline(Line *l)
 	if ( c != ' ' ) l->count++;
 
 	switch (c) {
-	case '-':  dashes = 1; break;
-	case ' ':  spaces = 1; break;
+	case '-':  UNLESS_FENCED(dashes = 1); break;
+	case ' ':  UNLESS_FENCED(spaces = 1); break;
 	case '=':  equals = 1; break;
-	case '_':  underscores = 1; break;
+	case '_':  UNLESS_FENCED(underscores = 1); break;
 	case '*':  stars = 1; break;
-	case '~':  tildes = 1; break;
-	default:   return;
+#if WITH_FENCED_CODE
+	case '~':  if (other) return; fenced = 1; tildes = 1; break;
+	case '`':  if (other) return; fenced = 1; backticks = 1; break;
+#endif
+	default:
+    other = 1;
+    l->count--;
+    if (!fenced) return;
 	}
     }
 
-    if ( dashes + equals + underscores + stars + tildes > 1 )
+    if ( dashes + equals + underscores + stars + tildes + backticks > 1 )
 	return;
 
     if ( spaces ) {
@@ -226,8 +236,11 @@ checkline(Line *l)
 
     if ( stars || underscores ) { l->kind = chk_hr; }
     else if ( dashes ) { l->kind = chk_dash; }
-    else if ( tildes ) { l->kind = chk_tilde; }
     else if ( equals ) { l->kind = chk_equal; }
+#if WITH_FENCED_CODE
+    else if ( tildes ) { l->kind = chk_tilde; }
+    else if ( backticks ) { l->kind = chk_backtick; }
+#endif
 }
 
 
@@ -316,47 +329,6 @@ htmlblock(Paragraph *p, struct kw *tag, int *unclosed)
     }
     *unclosed = 1;
     return 0;
-}
-
-
-/* tables look like
- *   header|header{|header}
- *   ------|------{|......}
- *   {body lines}
- */
-static int
-istable(Line *t)
-{
-    char *p;
-    Line *dashes, *body;
-    int l;
-    int dashed = 0;
-    
-    /* three lines, first must contain |,
-		    second must be ---|---,
-		    third must contain |
-     */
-    if ( !(t->flags & PIPECHAR) )
-	return 0;
-	
-    dashes = t->next;
-    if ( !(dashes && (dashes->flags & PIPECHAR)) )
-	return 0;
-
-    body = dashes->next;
-    if ( !(body && (body->flags & PIPECHAR)) )
-	return 0;
-
-    /* second line must contain - or | and nothing
-     * else except for whitespace or :
-     */
-    for ( p = T(dashes->text), l = S(dashes->text); l > 0; ++p, --l)
-	if ( *p == '-' )
-	    dashed = 1;
-	else if ( ! ((*p == '|') || (*p == ':') || isspace(*p)) )
-	    return 0;
-
-    return dashed;
 }
 
 
@@ -490,7 +462,7 @@ is_extra_dt(Line *t, int *clip)
 {
 #if USE_EXTRA_DL
     
-    if ( t && t->next && T(t->text)[0] != '='
+    if ( t && t->next && S(t->text) && T(t->text)[0] != '='
 		      && T(t->text)[S(t->text)-1] != '=') {
 	Line *x;
     
@@ -558,7 +530,7 @@ islist(Line *t, int *clip, DWORD flags, int *list_type)
 	    strtoul(T(t->text)+t->dle, &q, 10);
 	    if ( (q > T(t->text)+t->dle) && (q == T(t->text) + (j-1)) ) {
 		j = nextnonblank(t,j);
-		*clip = (j > 4) ? 4 : j;
+		*clip = j;
 		*list_type = OL;
 		return AL;
 	    }
@@ -640,12 +612,15 @@ codeblock(Paragraph *p)
 
 #ifdef WITH_FENCED_CODE
 static int
-iscodefence(Line *r, int size)
+iscodefence(Line *r, int size, line_type kind)
 {
     if ( !(r->flags & CHECKED) )
 	checkline(r);
 
-    return (r->kind == chk_tilde) && (r->count >= size);
+    if ( kind )
+	return (r->kind == kind) && (r->count >= size);
+    else
+	return (r->kind == chk_tilde || r->kind == chk_backtick) && (r->count >= size);
 }
 
 static Paragraph *
@@ -658,16 +633,24 @@ fencedcodeblock(ParagraphRoot *d, Line **ptr)
     
     /* don't allow zero-length code fences
      */
-    if ( (first->next == 0) || iscodefence(first->next, first->count) )
+    if ( (first->next == 0) || iscodefence(first->next, first->count, 0) )
 	return 0;
 
     /* find the closing fence, discard the fences,
      * return a Paragraph with the contents
      */
     for ( r = first; r && r->next; r = r->next )
-	if ( iscodefence(r->next, first->count) ) {
+	if ( iscodefence(r->next, first->count, first->kind) ) {
 	    (*ptr) = r->next->next;
 	    ret = Pp(d, first->next, CODE);
+      if (S(first->text) - first->count > 0) {
+        char *lang_attr = T(first->text) + first->count;
+        while ( *lang_attr != 0 && *lang_attr == ' ' ) lang_attr++;
+        ret->lang = strdup(lang_attr);
+      }
+      else {
+        ret->lang = 0;
+      }
 	    ___mkd_freeLine(first);
 	    ___mkd_freeLine(r->next);
 	    r->next = 0;
@@ -760,6 +743,7 @@ isdivmarker(Line *p, int start, DWORD flags)
     if ( flags & (MKD_NODIVQUOTE|MKD_STRICT) )
 	return 0;
 
+    start = nextnonblank(p, start);
     last= S(p->text) - (1 + start);
     s   = T(p->text) + start;
 
@@ -841,25 +825,6 @@ quoteblock(Paragraph *p, DWORD flags)
 }
 
 
-/*
- * A table block starts with a table header (see istable()), and continues
- * until EOF or a line that /doesn't/ contain a |.
- */
-static Line *
-tableblock(Paragraph *p)
-{
-    Line *t, *q;
-
-    for ( t = p->text; t && (q = t->next); t = t->next ) {
-	if ( !(t->flags & PIPECHAR) ) {
-	    t->next = 0;
-	    return q;
-	}
-    }
-    return 0;
-}
-
-
 typedef int (*linefn)(Line *);
 
 
@@ -881,6 +846,12 @@ listitem(Paragraph *p, int indent, DWORD flags, linefn check)
 	UNCHECK(t);
 	t->dle = mkd_firstnonblank(t);
 
+        /* even though we had to trim a long leader off this item,
+         * the indent for trailing paragraphs is still 4...
+	 */
+	if (indent > 4) {
+	    indent = 4;
+	}
 	if ( (q = skipempty(t->next)) == 0 ) {
 	    ___mkd_freeLineRange(t,q);
 	    return 0;
@@ -932,7 +903,7 @@ definition_block(Paragraph *top, int clip, MMIOT *f, int kind)
 	if ( (text = skipempty(q->next)) == 0 )
 	    break;
 
-	if (( para = (text != q->next) ))
+	if ( para = (text != q->next) )
 	    ___mkd_freeLineRange(q, text);
 	
 	q->next = 0; 
@@ -955,7 +926,7 @@ definition_block(Paragraph *top, int clip, MMIOT *f, int kind)
 	if ( (q = skipempty(text)) == 0 )
 	    break;
 
-	if (( para = (q != text) )) {
+	if ( para = (q != text) ) {
 	    Line anchor;
 
 	    anchor.next = text;
@@ -1047,6 +1018,7 @@ addfootnote(Line *p, MMIOT* f)
     j = nextnonblank(p, j+2);
 
     if ( (f->flags & MKD_EXTRA_FOOTNOTE) && (T(foot->tag)[0] == '^') ) {
+	/* need to consume all lines until non-indented block? */
 	while ( j < S(p->text) )
 	    EXPAND(foot->title) = T(p->text)[j++];
 	goto skip_to_end;
@@ -1145,6 +1117,7 @@ compile_document(Line *ptr, MMIOT *f)
 
     while ( ptr ) {
 	if ( !(f->flags & MKD_NOHTML) && (tag = isopentag(ptr)) ) {
+	    int blocktype;
 	    /* If we encounter a html/style block, compile and save all
 	     * of the cached source BEFORE processing the html/style.
 	     */
@@ -1154,7 +1127,12 @@ compile_document(Line *ptr, MMIOT *f)
 		p->down = compile(T(source), 1, f);
 		T(source) = E(source) = 0;
 	    }
-	    p = Pp(&d, ptr, strcmp(tag->id, "STYLE") == 0 ? STYLE : HTML);
+	    
+	    if ( f->flags & MKD_NOSTYLE )
+		blocktype = HTML;
+	    else
+		blocktype = strcmp(tag->id, "STYLE") == 0 ? STYLE : HTML;
+	    p = Pp(&d, ptr, blocktype);
 	    ptr = htmlblock(p, tag, &unclosed);
 	    if ( unclosed ) {
 		p->typ = SOURCE;
@@ -1189,6 +1167,58 @@ compile_document(Line *ptr, MMIOT *f)
 }
 
 
+static int
+first_nonblank_before(Line *j, int dle)
+{
+    return (j->dle < dle) ? j->dle : dle;
+}
+
+
+static int
+actually_a_table(MMIOT *f, Line *pp)
+{
+    Line *r;
+    int j;
+    int c;
+
+    /* tables need to be turned on */
+    if ( f->flags & (MKD_STRICT|MKD_NOTABLES) )
+	return 0;
+
+    /* tables need three lines */
+    if ( !(pp && pp->next && pp->next->next) ) {
+	return 0;
+    }
+
+    /* all lines must contain |'s */
+    for (r = pp; r; r = r->next )
+	if ( !(r->flags & PIPECHAR) ) {
+	    return 0;
+	}
+
+    /* if the header has a leading |, all lines must have leading |'s */
+    if ( T(pp->text)[pp->dle] == '|' ) {
+	for ( r = pp; r; r = r->next )
+	    if ( T(r->text)[first_nonblank_before(r,pp->dle)] != '|' ) {
+		return 0;
+	    }
+    }
+
+    /* second line must be only whitespace, -, |, or : */
+    r = pp->next;
+
+    for ( j=r->dle; j < S(r->text); ++j ) {
+	c = T(r->text)[j];
+
+	if ( !(isspace(c)||(c=='-')||(c==':')||(c=='|')) ) {
+	    return 0;
+	}
+    }
+
+    return 1;
+}
+
+
 /*
  * break a collection of markdown input into
  * blocks of lists, code, html, and text to
@@ -1220,7 +1250,7 @@ compile(Line *ptr, int toplevel, MMIOT *f)
 	    ptr = codeblock(p);
 	}
 #if WITH_FENCED_CODE
-	else if ( iscodefence(ptr,3) && (p=fencedcodeblock(&d, &ptr)) )
+	else if ( iscodefence(ptr,3,0) && (p=fencedcodeblock(&d, &ptr)) )
 	    /* yay, it's already done */ ;
 #endif
 	else if ( ishr(ptr) ) {
@@ -1229,7 +1259,7 @@ compile(Line *ptr, int toplevel, MMIOT *f)
 	    ptr = ptr->next;
 	    ___mkd_freeLine(r);
 	}
-	else if (( list_class = islist(ptr, &indent, f->flags, &list_type) )) {
+	else if ( list_class = islist(ptr, &indent, f->flags, &list_type) ) {
 	    if ( list_class == DL ) {
 		p = Pp(&d, ptr, DL);
 		ptr = definition_block(p, indent, f, list_type);
@@ -1249,13 +1279,12 @@ compile(Line *ptr, int toplevel, MMIOT *f)
 	    p = Pp(&d, ptr, HDR);
 	    ptr = headerblock(p, hdr_type);
 	}
-	else if ( istable(ptr) && !(f->flags & (MKD_STRICT|MKD_NOTABLES)) ) {
-	    p = Pp(&d, ptr, TABLE);
-	    ptr = tableblock(p);
-	}
 	else {
 	    p = Pp(&d, ptr, MARKUP);
 	    ptr = textblock(p, toplevel, f->flags);
+	    /* tables are a special kind of paragraph */
+	    if ( actually_a_table(f, p->text) )
+		p->typ = TABLE;
 	}
 
 	if ( (para||toplevel) && !p->align )
