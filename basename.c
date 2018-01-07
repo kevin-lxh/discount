@@ -35,7 +35,7 @@ e_free(char *string, void *context)
 }
 
 void
-mkd_basename(MMIOT *document, char *base)
+mkd_basename(MMIOTV *document, char *base)
 {
     mkd_e_url(document, e_basename);
     mkd_e_data(document, base);

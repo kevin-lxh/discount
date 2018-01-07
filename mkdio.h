@@ -3,21 +3,21 @@
 
 #include <stdio.h>
 
-typedef void MMIOT;
+typedef void MMIOTV;
 
 typedef unsigned int mkd_flag_t;
 
 /* line builder for markdown()
  */
-MMIOT *mkd_in(FILE*,mkd_flag_t);		/* assemble input from a file */
-MMIOT *mkd_string(const char*,int,mkd_flag_t);	/* assemble input from a buffer */
+//MMIOTV *mkd_in(FILE*,mkd_flag_t);        /* assemble input from a file */
+//MMIOTV *mkd_string(const char*,int,mkd_flag_t);    /* assemble input from a buffer */
 
 /* line builder for github flavoured markdown
  */
-MMIOT *gfm_in(FILE*,mkd_flag_t);		/* assemble input from a file */
-MMIOT *gfm_string(const char*,int,mkd_flag_t);	/* assemble input from a buffer */
+//MMIOTV *gfm_in(FILE*,mkd_flag_t);        /* assemble input from a file */
+//MMIOTV *gfm_string(const char*,int,mkd_flag_t);    /* assemble input from a buffer */
 
-void mkd_basename(MMIOT*,char*);
+//void mkd_basename(MMIOTV*,char*);
 
 void mkd_initialize();
 void mkd_with_html5_tags();
@@ -25,37 +25,37 @@ void mkd_shlib_destructor();
 
 /* compilation, debugging, cleanup
  */
-int mkd_compile(MMIOT*, mkd_flag_t);
-void mkd_cleanup(MMIOT*);
+//int mkd_compile(MMIOTV*, mkd_flag_t);
+//void mkd_cleanup(MMIOTV*);
 
 /* markup functions
  */
-int mkd_dump(MMIOT*, FILE*, int, char*);
-int markdown(MMIOT*, FILE*, mkd_flag_t);
+int mkd_dump(MMIOTV*, FILE*, int, char*);
+int markdown(MMIOTV*, FILE*, mkd_flag_t);
 int mkd_line(char *, int, char **, mkd_flag_t);
 typedef int (*mkd_sta_function_t)(const int,const void*);
 void mkd_string_to_anchor(char *, int, mkd_sta_function_t, void*, int);
-int mkd_xhtmlpage(MMIOT*,int,FILE*);
+int mkd_xhtmlpage(MMIOTV*,int,FILE*);
 
 /* header block access
  */
-char* mkd_doc_title(MMIOT*);
-char* mkd_doc_author(MMIOT*);
-char* mkd_doc_date(MMIOT*);
+char* mkd_doc_title(MMIOTV*);
+char* mkd_doc_author(MMIOTV*);
+char* mkd_doc_date(MMIOTV*);
 
 /* compiled data access
  */
-int mkd_document(MMIOT*, char**);
-int mkd_toc(MMIOT*, char**);
-int mkd_css(MMIOT*, char **);
+//int mkd_document(MMIOTV*, char**);
+int mkd_toc(MMIOTV*, char**);
+//int mkd_css(MMIOTV*, char **);
 int mkd_xml(char *, int, char **);
 
 /* write-to-file functions
  */
-int mkd_generatehtml(MMIOT*,FILE*);
-int mkd_generatetoc(MMIOT*,FILE*);
+//int mkd_generatehtml(MMIOTV*,FILE*);
+int mkd_generatetoc(MMIOTV*,FILE*);
 int mkd_generatexml(char *, int,FILE*);
-int mkd_generatecss(MMIOT*,FILE*);
+//int mkd_generatecss(MMIOTV*,FILE*);
 #define mkd_style mkd_generatecss
 int mkd_generateline(char *, int, FILE*, mkd_flag_t);
 #define mkd_text mkd_generateline
@@ -73,10 +73,10 @@ void mkd_e_data(void *, void *);
 /* version#.
  */
 extern char markdown_version[];
-void mkd_mmiot_flags(FILE *, MMIOT *, int);
+void mkd_MMIOTV_flags(FILE *, MMIOTV *, int);
 void mkd_flags_are(FILE*, mkd_flag_t, int);
 
-void mkd_ref_prefix(MMIOT*, char*);
+//void mkd_ref_prefix(MMIOTV*, char*);
 
 
 /* special flags for markdown() and mkd_text()
